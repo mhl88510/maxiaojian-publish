@@ -26,6 +26,27 @@ These checksum commands do not establish that live publishing workflows have bee
 
 ## 升级前 / Before upgrading
 
+### 任务完成触发的 PR 与本地采用 / Task-triggered PR and local adoption
+
+维护顺序是：发现问题 → 本地修复和离线验证 → 按同一主题集中创建或更新一个 PR → 对当前提交完成审查、修复复测 → 合并 → 在明确获准更新本地时备份并采用。映射只记录源码、公开仓库与运行文件的对应关系，不是定时同步或文件监听器。不要将私有业务源码、配置或原历史整库推到公开仓库。
+
+The sequence is local fix and affected offline tests, one consolidated same-topic PR, exact-head review/fix/retest, merge, and then separately authorized backed-up local adoption. File mappings are routing metadata, not timers or watchers. Never mirror private business source, configuration or original history into this public repository.
+
+`scripts/task_pr.py` 可接收仓库外的完成清单（`schema=completed-public-topic/v1`、稳定 `topic`、`files=[{path,sha256}]`），只在独立检出中暂存指定字节，运行离线检查和完整公开历史敏感扫描，再用 `--pr` 创建或更新同主题 PR。已有 PR 时清单还须绑定最新 `expected_pr_head`；先合并审查修复，不能用旧源码覆盖。未提供 `--pr` 不推送。此工具不会合并、部署或定时运行；合并仍须由执行者核当前 head 的完整审查。
+
+The optional task PR helper requires an external completed-file manifest, an isolated work directory and an explicit `--pr` to push. It never stages an entire shared checkout or imports original private history, and rejects private configuration, source drift and unexpected existing PR heads. The executor still verifies the exact-head review before merging and separately verifies local adoption.
+
+`scripts/reviewed_core_update.py`（Python 3.9+、Git、已认证的 GitHub CLI）提供显式两阶段采用。私有 binding 文件保存在仓库外：`schema=publisher-local-core-bindings/v1`、`repo`、`runtime_root`、`files=[{source,target,expected_sha256}]`，可选 `protected=[{path,sha256}]`。只登记已核可共用的 `core/*.mjs` 文件；源码与运行相对路径必须对应。账号配置、个案恢复或已定制文件不能为了对齐而覆盖。无对应通用文件时先做局部适配和验证。
+
+The explicit two-phase helper requires Python 3.9+, Git and an authenticated GitHub CLI. Keep the private binding file outside the repository. Only register verified shared core modules; preserve private configuration and case-specific/customized adapters. Customized modules require an explicit scoped reconciliation, not bulk replacement. Both phases check the merged PR, exact completed clean Codex review, unresolved discussions and configured checks. Empty check lists do not imply CI ran.
+
+```sh
+python3 scripts/reviewed_core_update.py plan --checkout /path/to/clean-checkout --bindings /path/to/private-bindings.json --backup-root /path/to/private-backups --pr 123 --plan /path/to/new-plan.json
+python3 scripts/reviewed_core_update.py apply --plan /path/to/new-plan.json --expected-plan-sha256 <printed-plan-sha256>
+```
+
+该工具只读取 Git/GitHub 元数据并备份、核对和替换明确登记的本地源码；不调用发布器、浏览器或真实平台。原文件漂移、符号链接、审查未通过或计划指纹不符均停止。完成后仍要运行受影响离线检查；不得借升级重放未知结果、清锁或修改回执。 / The helper never invokes publishing or a browser. It rejects drift, symlinks and unreviewed changes, preserves preimages, and rolls back its own writes on failure without overwriting concurrent edits. Run affected offline checks afterward; never replay business operations or clear locks/receipts as part of an upgrade.
+
 先保留自己的配置与运行记录，并确认没有运行中的任务。默认目录为 `~/.maxiaojian-publish` 和 XDG config 下的 `maxiaojian-publish/config.json`；环境变量 `VIDEO_PUBLISHER_CONFIG`、`SCHOOL_PUBLISHER_ACCOUNT_MATRIX` 可指向其他私有位置。备份仅留本机，不提交仓库。
 
 Keep your configuration and runtime records, and ensure no job is running. Defaults are `~/.maxiaojian-publish` and `maxiaojian-publish/config.json` under the XDG config directory. `VIDEO_PUBLISHER_CONFIG` and `SCHOOL_PUBLISHER_ACCOUNT_MATRIX` may point elsewhere. Keep backups local; do not commit them.

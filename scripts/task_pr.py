@@ -1,0 +1,137 @@
+#!/usr/bin/env python3
+"""Publish one completed, SHA-pinned public-source topic; no watcher or deployment."""
+import argparse
+import hashlib
+import json
+from pathlib import Path
+import re
+import subprocess
+import tempfile
+import uuid
+
+
+def run(args, cwd=None):
+    return subprocess.check_output(args, cwd=cwd, stderr=subprocess.STDOUT, text=True)
+
+
+def gh(*args):
+    return json.loads(run(['gh', *args]))
+
+
+def screened_source(source, row):
+    relative = Path(row['path'])
+    if (relative.is_absolute() or '..' in relative.parts or not relative.parts
+            or any(part in {'.git', 'node_modules', 'config', 'data', 'output', 'backups', 'sessions', 'profiles'} for part in relative.parts)
+            or relative.as_posix().startswith('.github/workflows/')
+            or relative.name.startswith('.env')
+            or relative.suffix not in {'.py', '.mjs', '.js', '.json', '.md', '.yml', '.yaml', '.txt'}
+            or re.search(r'cookie|credential|secret|storage.?state|\.bak$|\.backup$', relative.name, re.I)):
+        raise ValueError('PUBLIC_SOURCE_PATH_FORBIDDEN')
+    path = source / relative
+    if any(p.is_symlink() for p in (path, *path.parents)) or not path.is_file():
+        raise ValueError('PLAIN_SOURCE_FILE_REQUIRED')
+    raw = path.read_bytes()
+    if len(raw) > 4 * 1024 * 1024 or hashlib.sha256(raw).hexdigest() != row['sha256']:
+        raise ValueError('COMPLETED_SOURCE_SHA_CHANGED')
+    text = raw.decode('utf-8')
+    if re.search(r'/(?:Users|home)/|-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|gh_[a-z0-9]{8,}', text):
+        raise ValueError('PRIVATE_OR_NONPORTABLE_SOURCE')
+    return relative, raw
+
+
+def validate_manifest(source, manifest):
+    if manifest.get('schema') != 'completed-public-topic/v1' or not re.fullmatch(r'[a-z0-9][a-z0-9-]{0,70}', manifest.get('topic', '')):
+        raise ValueError('COMPLETED_TOPIC_REQUIRED')
+    rows = manifest.get('files', [])
+    if not rows or len({r['path'] for r in rows}) != len(rows):
+        raise ValueError('NONEMPTY_UNIQUE_SOURCE_LIST_REQUIRED')
+    return [screened_source(source, row) for row in rows]
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--source', type=Path, required=True)
+    parser.add_argument('--manifest', type=Path, required=True)
+    parser.add_argument('--work-root', type=Path, required=True)
+    parser.add_argument('--repository', default='mhl88510/maxiaojian-publish')
+    parser.add_argument('--message', required=True)
+    parser.add_argument('--pr', action='store_true')
+    args = parser.parse_args()
+    if not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+', args.repository):
+        raise ValueError('REPOSITORY_INVALID')
+    source = args.source.resolve()
+    manifest_raw = args.manifest.read_bytes()
+    manifest = json.loads(manifest_raw)
+    files = validate_manifest(source, manifest)
+    metadata = gh('api', 'repos/' + args.repository)
+    if metadata['private'] or metadata['full_name'] != args.repository:
+        raise ValueError('REGISTERED_PUBLIC_REPOSITORY_REQUIRED')
+    base = metadata['default_branch']
+    branch = 'codex/public-' + manifest['topic']
+    opened = gh('pr', 'list', '-R', args.repository, '--state', 'open', '--head', branch,
+                '--json', 'url,headRefName,headRefOid', '--limit', '100')
+    if len(opened) > 1:
+        raise ValueError('DUPLICATE_TOPIC_PRS')
+    if opened and manifest.get('expected_pr_head') != opened[0]['headRefOid']:
+        raise ValueError('EXISTING_PR_CHANGED_RECONCILE_REVIEWED_FIXES_FIRST')
+    args.work_root.mkdir(parents=True, exist_ok=True)
+    checkout = args.work_root / ('public-topic-' + uuid.uuid4().hex)
+    run(['git', 'clone', '--no-hardlinks', 'https://github.com/' + args.repository + '.git', str(checkout)])
+    if opened:
+        run(['git', '-C', str(checkout), 'fetch', 'origin', branch])
+        run(['git', '-C', str(checkout), 'checkout', '-b', branch, 'FETCH_HEAD'])
+    else:
+        run(['git', '-C', str(checkout), 'checkout', '-b', branch, 'origin/' + base])
+    for relative, raw in files:
+        target = checkout / relative
+        if any(p.is_symlink() for p in (target, *target.parents)):
+            raise ValueError('DESTINATION_SYMLINK_FORBIDDEN')
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(raw)
+    if args.manifest.read_bytes() != manifest_raw or validate_manifest(source, manifest) != files:
+        raise ValueError('SOURCE_CHANGED_DURING_EXPORT')
+    run(['git', '-C', str(checkout), 'add', '--', *(str(relative) for relative, _ in files)])
+    changed = subprocess.run(['git', '-C', str(checkout), 'diff', '--cached', '--quiet']).returncode
+    if changed == 0:
+        print(json.dumps({'changed': False, 'pull_request': opened[0]['url'] if opened else None}))
+        return
+    if changed != 1:
+        raise ValueError('GIT_DIFF_FAILED')
+    checks = [
+        ['npm', 'ci', '--ignore-scripts', '--no-audit', '--no-fund'],
+        ['npm', 'run', 'check'], ['npm', 'test'],
+        ['python3', '-m', 'unittest', 'discover', '-s', 'tests', '-p', 'test_*.py'],
+    ]
+    for index, check in enumerate(checks):
+        log = args.work_root / (checkout.name + '-check-' + str(index) + '.log')
+        try:
+            log.write_text(run(check, cwd=checkout))
+        except subprocess.CalledProcessError as error:
+            log.write_text(error.output)
+            raise RuntimeError('OFFLINE_CHECK_FAILED: ' + str(log)) from error
+    run(['git', '-C', str(checkout), 'diff', '--cached', '--check'])
+    run(['git', '-C', str(checkout), '-c', 'user.name=maintainer', '-c',
+         'user.email=maintainer@users.noreply.github.com', 'commit', '-m', args.message])
+    with tempfile.TemporaryDirectory(prefix='public-source-screen-') as temp:
+        config = Path(temp) / 'scanner.toml'
+        config.write_text('[extend]\nuseDefault = true\n')
+        ignore = Path(temp) / 'empty-ignore'
+        ignore.mkdir()
+        run(['gitleaks', 'git', str(checkout), '--config', str(config), '--no-banner',
+             '--redact=100', '--ignore-gitleaks-allow', '--gitleaks-ignore-path', str(ignore)])
+    head = run(['git', '-C', str(checkout), 'rev-parse', 'HEAD']).strip()
+    url = opened[0]['url'] if opened else None
+    if args.pr:
+        run(['git', '-C', str(checkout), 'push', 'origin', 'HEAD:refs/heads/' + branch])
+        if not url:
+            url = run(['gh', 'pr', 'create', '-R', args.repository, '--base', base, '--head', branch,
+                       '--title', args.message, '--body',
+                       'One completed SHA-pinned public-source topic. Affected offline checks and full public-history secret scan passed. Review this exact head; fixes stay in this PR. No private configuration, runtime replacement, timers or business publishing.']).strip()
+    result = {'changed': True, 'head': head, 'checkout': str(checkout), 'pull_request': url,
+              'files': [str(relative) for relative, _ in files], 'deployed': False}
+    (args.work_root / (checkout.name + '-RESULT.json')).write_text(json.dumps(result, indent=2))
+    print(json.dumps(result))
+
+
+if __name__ == '__main__':
+    main()
