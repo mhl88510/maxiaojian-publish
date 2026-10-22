@@ -60,6 +60,20 @@ class CompletedPublicSourceTests(unittest.TestCase):
                 self.assertEqual(m.request_review_once('example/publisher', 'https://github.com/example/publisher/pull/1', head), mode in {'absent', 'old-head', 'impersonated'})
                 self.assertEqual(send.call_count, int(mode in {'absent', 'old-head', 'impersonated'}))
 
+    def test_unchanged_pr_retries_missing_review_without_pushing(self):
+        opened = [{'url': 'https://github.com/example/publisher/pull/1'}]
+        for requested in [True, False]:
+            with self.subTest(requested=requested), patch.object(m, 'request_review_once', return_value=requested) as review, patch.object(m, 'run') as run:
+                result = m.unchanged_topic_result('example/publisher', opened, 'a' * 40, True)
+                self.assertFalse(result['changed'])
+                self.assertEqual(result['review_request_state'], 'REQUESTED' if requested else 'EXISTING_REVIEW_OR_TRUSTED_REQUEST')
+                review.assert_called_once_with('example/publisher', opened[0]['url'], 'a' * 40)
+                run.assert_not_called()
+        with patch.object(m, 'request_review_once') as review:
+            m.unchanged_topic_result('example/publisher', opened, 'a' * 40, False)
+            m.unchanged_topic_result('example/publisher', [], 'a' * 40, True)
+            review.assert_not_called()
+
     def test_lagging_pr_projection_does_not_repeat_push_or_request(self):
         head = 'a' * 40
         for converges in [False, True]:

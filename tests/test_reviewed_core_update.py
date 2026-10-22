@@ -171,7 +171,7 @@ class ReviewGateTests(unittest.TestCase):
         head = 'a' * 40
         review = {'commit_sha': head, 'has_any_findings': False, 'has_unresolved_findings': False, 'status': 'completed'}
         thread = {'headRefOid': head, 'reviewDecision': '', 'reviewThreads': {'pageInfo': {'hasNextPage': False}, 'nodes': []}}
-        for fault in [None, 'running', 'old-head', 'findings', 'unresolved', 'checks', 'not-merged']:
+        for fault in [None, 'running', 'old-head', 'findings', 'unresolved', 'checks', 'not-merged', 'history', 'duplicate']:
             r, t = copy.deepcopy(review), copy.deepcopy(thread)
             if fault == 'running': r['status'] = 'running'
             if fault == 'old-head': r['commit_sha'] = 'b' * 40
@@ -184,8 +184,12 @@ class ReviewGateTests(unittest.TestCase):
                     return {'merged': fault != 'not-merged', 'head': {'sha': head}, 'merge_commit_sha': 'c' * 40,
                             'base': {'repo': {'full_name': 'example/publisher'}}}
                 if '/comments?' in endpoint:
-                    return [{'user': {'login': 'chatgpt-codex-connector[bot]'},
+                    rows = [{'user': {'login': 'chatgpt-codex-connector[bot]'},
                              'body': '<!-- codex-review-state:v1 ' + json.dumps({'code_review': r}) + ' -->'}]
+                    if fault in {'history', 'duplicate'}:
+                        old = {**review, 'commit_sha': 'b' * 40 if fault == 'history' else head, 'has_any_findings': True}
+                        rows.insert(0, {'user': {'login': 'chatgpt-codex-connector[bot]'}, 'body': '<!-- codex-review-state:v1 ' + json.dumps({'code_review': old}) + ' -->'})
+                    return rows
                 if endpoint == 'graphql': return {'data': {'repository': {'pullRequest': t}}}
                 if '/check-runs?' in endpoint:
                     return {'total_count': 1 if fault == 'checks' else 0, 'check_runs':
@@ -193,7 +197,7 @@ class ReviewGateTests(unittest.TestCase):
                 return {'total_count': 0, 'statuses': []}
 
             with self.subTest(fault=fault), patch.object(m, 'gh', side_effect=fixture):
-                if fault:
+                if fault and fault != 'history':
                     with self.assertRaises(ValueError): m.verified_merge('example/publisher', 1)
                 else:
                     self.assertEqual(m.verified_merge('example/publisher', 1)['head'], head)

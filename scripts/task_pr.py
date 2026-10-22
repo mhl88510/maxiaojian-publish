@@ -82,6 +82,15 @@ def request_review_once(repository, url, head):
     return True
 
 
+def unchanged_topic_result(repository, opened, head, request):
+    result = {'changed': False, 'pull_request': opened[0]['url'] if opened else None}
+    if request and opened:
+        sent = request_review_once(repository, opened[0]['url'], head)
+        result['head'] = head
+        result['review_request_state'] = 'REQUESTED' if sent else 'EXISTING_REVIEW_OR_TRUSTED_REQUEST'
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--source', type=Path, required=True)
@@ -131,7 +140,8 @@ def main():
     run(['git', '-C', str(checkout), 'add', '--', *(str(relative) for relative, _ in files)])
     changed = subprocess.run(['git', '-C', str(checkout), 'diff', '--cached', '--quiet']).returncode
     if changed == 0:
-        print(json.dumps({'changed': False, 'pull_request': opened[0]['url'] if opened else None}))
+        head = run(['git', '-C', str(checkout), 'rev-parse', 'HEAD']).strip()
+        print(json.dumps(unchanged_topic_result(args.repository, opened, head, args.pr)))
         return
     if changed != 1:
         raise ValueError('GIT_DIFF_FAILED')

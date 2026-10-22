@@ -47,7 +47,9 @@ def verified_merge(repository, number):
     for comment in comments:
         match = re.search(r'codex-review-state:v1 (\{.*?\}) -->', comment['body'])
         if comment['user']['login'] == 'chatgpt-codex-connector[bot]' and match:
-            reviews.append(json.loads(match.group(1))['code_review'])
+            review = json.loads(match.group(1))['code_review']
+            if review.get('commit_sha') == head:
+                reviews.append(review)
     if len(reviews) != 1 or reviews[0] != {
         'commit_sha': head, 'has_any_findings': False,
         'has_unresolved_findings': False, 'status': 'completed',
