@@ -13,7 +13,7 @@ Get the browser from the [Ego Lite website](https://lite.ego.app/) and follow th
 | Node.js | 包要求 22+；本机验证使用 24.19.0。 / The package requires 22+; local checks used 24.19.0. |
 | Ego Lite | 本次整理核对的 macOS 版本为 0.6.0.16。尚未建立更低版本或其他版本的兼容矩阵。 / The macOS version inspected for this extraction was 0.6.0.16. No minimum-browser-version or other-version compatibility matrix has been established. |
 | Ego CLI/API | 对应使用指南为 v2.1.0（指南版本，不是浏览器版本）。需支持 `ego-browser nodejs` 以及 `profiles()`、`listTaskSpaces()`、`taskSpace()`、TaskSpace/Page API；以自己安装版本的帮助为准。 / The inspected guide is v2.1.0, a guide version rather than the browser version. The runtime must support `ego-browser nodejs`, `profiles()`, `listTaskSpaces()`, `taskSpace()`, and the TaskSpace/Page API. Consult the help matching your installed version. |
-| 系统 / OS | 原版与本次安装验证为 macOS；Linux/Windows 未实机验收。 / The original runtime and these installation checks used macOS; Linux/Windows have not been verified on real systems. |
+| 系统 / OS | 原版与本次安装验证为 macOS；Linux/Windows 的真实浏览器发布未验收；离线矩阵结果见 GitHub Actions。 / The original runtime used macOS; live browser publishing on Linux/Windows has not been verified. See GitHub Actions for offline matrix results. |
 
 完成官方引导后，在 Bash/Zsh 中检查命令并读取本版本指南。仅表示工具可发现，不代表平台已登录或账号正确。命令缺失时回到官方引导，不要用同名第三方程序替代。
 

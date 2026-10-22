@@ -17,6 +17,7 @@
     "check": "node scripts/check.mjs"
   },
   "files": [
+    ".github/ISSUE_TEMPLATE/bug_report.yml",
     ".github/workflows/offline.yml",
     "LICENSE",
     "LICENSE.upstream-MIT",
@@ -126,6 +127,7 @@
     "core/v2/tests/spaces.test.mjs",
     "docs/CONFIGURATION.md",
     "docs/EGO-SETUP.md",
+    "docs/MAINTENANCE.md",
     "docs/PRIVACY.md",
     "docs/SUPPORT.md",
     "docs/THIRD-PARTY.json",

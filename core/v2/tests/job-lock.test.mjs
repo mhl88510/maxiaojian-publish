@@ -6,14 +6,18 @@ import path from "node:path";
 import { spawn } from "node:child_process";
 import { acquireJobLock, assertJobLockOwner, JobBusyError, registerJobLockMember } from "../lib/job-lock.mjs";
 
-test("job lock permits exactly one orchestrator and releases idempotently", async () => {
+test("job lock permits exactly one orchestrator and releases idempotently", async (t) => {
   const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "video-publisher-job-lock-test-"));
   const release = acquireJobLock(root, { jobId: "same-job", packagePath: "/tmp/package.json" });
   assert.equal(typeof release.token, "string");
   assert.equal(assertJobLockOwner(root, release.token).jobId, "same-job");
   assert.throws(() => assertJobLockOwner(root, "wrong-token"), JobBusyError);
-  assert.equal(fs.statSync(root).mode & 0o777, 0o700);
-  assert.equal(fs.statSync(path.join(root, "orchestrator.lock", "owner.json")).mode & 0o777, 0o600);
+  if (process.platform === "win32") {
+    t.diagnostic("POSIX mode bits are not Windows ACL evidence; Windows ACL privacy is not verified.");
+  } else {
+    assert.equal(fs.statSync(root).mode & 0o777, 0o700);
+    assert.equal(fs.statSync(path.join(root, "orchestrator.lock", "owner.json")).mode & 0o777, 0o600);
+  }
   assert.throws(() => acquireJobLock(root, { jobId: "same-job" }), JobBusyError);
   release();
   release();

@@ -39,7 +39,7 @@ test("missing or empty configuration requires onboarding", async () => {
   await fs.promises.rm(root, { recursive: true, force: true });
 });
 
-test("completed onboarding writes a valid private per-user configuration", async () => {
+test("completed onboarding writes a valid private per-user configuration", async (t) => {
   const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "video-publisher-config-ready-"));
   const configPath = path.join(root, "nested", "config.json");
   const config = createOnboardedConfig({
@@ -61,7 +61,11 @@ test("completed onboarding writes a valid private per-user configuration", async
   assert.deepEqual(ready.config.defaultPlatforms, ["douyin", "bilibili"]);
   assert.deepEqual(ready.config.platforms.douyin.defaultTopics, ["Tutorial"]);
   assert.equal(ready.config.declarations.originalityPolicy, "all_videos_original");
-  assert.equal(fs.statSync(configPath).mode & 0o777, 0o600);
+  if (process.platform === "win32") {
+    t.diagnostic("POSIX mode bits are not Windows ACL evidence; Windows ACL privacy is not verified.");
+  } else {
+    assert.equal(fs.statSync(configPath).mode & 0o777, 0o600);
+  }
   await fs.promises.rm(root, { recursive: true, force: true });
 });
 

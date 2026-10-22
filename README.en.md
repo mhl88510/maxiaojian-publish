@@ -56,7 +56,7 @@ Requirements:
 
 Ego Lite is a separate dependency and is not bundled. Follow the [official quick start](https://lite.ego.app/document/en/docs/quick-start) and this repository's [Ego setup guide](docs/EGO-SETUP.md) to install and connect your own tools. The inspected environment was macOS / Ego Lite 0.6.0.16 with CLI guide v2.1.0; no minimum-browser-version or other-version compatibility guarantee has been established. Complete onboarding. Use `command -v ego-browser` to check whether the command is discoverable, then `ego-browser skill` to read the guide matching your installed version. Neither command establishes that a target platform is logged in or that the account identity is verified.
 
-The original runtime and the installation checks for this distribution used macOS. Linux and Windows have not been verified on real systems. Ordinary Chrome or Playwright cannot directly replace the Ego API.
+The original runtime and the installation checks for this distribution used macOS. Live browser publishing on Linux and Windows has not been verified; see the [CI matrix](https://github.com/mhl88510/maxiaojian-publish/actions/workflows/offline.yml) for offline installation and synthetic checks. Ordinary Chrome or Playwright cannot directly replace the Ego API.
 
 ```sh
 git clone https://github.com/mhl88510/maxiaojian-publish.git
@@ -135,9 +135,13 @@ npm test
 python3 -m unittest discover -s tests -p 'test_*.py'
 ```
 
-Version 0.1.0 passed 188 Node tests, 11 Python tests, and clean-install checks locally. The public repository currently has a manually triggered workflow only. No CI run was recorded during the 0.1.0 release preparation, so no passing-CI badge is shown. The maintainer confirmed that the original publisher was tested and remains in use; this extraction did not publish to business accounts.
+Version 0.1.0 passed 188 Node tests, 11 Python tests, and clean-install checks locally. The public repository uses a manually triggered offline workflow; see the [CI matrix](https://github.com/mhl88510/maxiaojian-publish/actions/workflows/offline.yml). Offline checks do not establish live-account publication or native-browser verification on every OS. The maintainer confirmed that the original publisher was tested and remains in use; this extraction did not publish to business accounts.
 
 When changing adapters, check account identity, media binding, single submission, and uncertain-result handling as well as successful mock paths.
+
+## Upgrading, uninstalling, and reporting bugs
+
+Get fixed versions from [GitHub Releases](https://github.com/mhl88510/maxiaojian-publish/releases/tag/v0.1.0). See the [bilingual maintenance guide](docs/MAINTENANCE.md) for upgrades, uninstalling each installation type, retaining private configuration/ledgers, and sanitized bug reports.
 
 ---
 

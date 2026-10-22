@@ -56,7 +56,7 @@ CLI 是实际执行核心。仓库附带 [maxiaojian-publish Skill](skills/maxia
 
 Ego Lite 是独立依赖，不随本包分发。请按[官方入门](https://lite.ego.app/document/en/docs/quick-start)和[本仓库 Ego 配置指南](docs/EGO-SETUP.md)安装并连接自己的工具。已核对环境为 macOS / Ego Lite 0.6.0.16，CLI 指南 v2.1.0；未建立最低浏览器版本或其他版本的兼容保证。完成引导后，可用 `command -v ego-browser` 检查命令是否可发现，再用 `ego-browser skill` 读取匹配已安装版本的使用指南；这两步不等于目标平台已登录或账号身份已核验。
 
-原版运行环境和本次安装验证均为 macOS；Linux、Windows 尚未实机验收。普通 Chrome 或 Playwright 不能直接替代 Ego API。
+原版运行环境和本次安装验证均为 macOS；Linux、Windows 的真实浏览器发布流程尚未验收；离线安装与合成检查结果见 [CI 矩阵](https://github.com/mhl88510/maxiaojian-publish/actions/workflows/offline.yml)。普通 Chrome 或 Playwright 不能直接替代 Ego API。
 
 ```sh
 git clone https://github.com/mhl88510/maxiaojian-publish.git
@@ -135,9 +135,13 @@ npm test
 python3 -m unittest discover -s tests -p 'test_*.py'
 ```
 
-0.1.0 在本机通过 188 项 Node 测试、11 项 Python 测试及干净安装检查。公开仓库目前只配置手动触发的工作流，0.1.0 发布整理时没有 CI 运行记录，因此不展示 CI 通过徽章。维护者确认原版已测试并持续使用；本次整理没有向业务账号执行真实发帖。
+0.1.0 在本机通过 188 项 Node 测试、11 项 Python 测试及干净安装检查。公开仓库使用手动触发的离线工作流，结果见 [CI 矩阵](https://github.com/mhl88510/maxiaojian-publish/actions/workflows/offline.yml)。离线检查不代表真实账号发帖或各系统原生浏览器验收。维护者确认原版已测试并持续使用；本次整理没有向业务账号执行真实发帖。
 
 修改适配器时，请同时检查账号身份、媒体绑定、一次提交与结果不明后的处理路径，不要只让模拟成功分支通过。
+
+## 升级、卸载与反馈
+
+固定版本下载见 [GitHub Releases](https://github.com/mhl88510/maxiaojian-publish/releases/tag/v0.1.0)。升级、不同安装方式的卸载、保留私有配置/账本，以及脱敏报错要求见 [维护指南（中英）](docs/MAINTENANCE.md)。
 
 ---
 

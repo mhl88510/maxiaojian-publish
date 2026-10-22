@@ -1,3 +1,4 @@
+import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -35,9 +36,9 @@ test('atomic reservation has one winner under parallel processes',()=>fixture(as
  const run=()=>new Promise((resolve,reject)=>{const p=spawn(process.execPath,['--input-type=module','-e',script,root]);let text='';p.stdout.on('data',v=>text+=v);p.on('error',reject);p.on('close',code=>code?reject(Error('child failure')):resolve(JSON.parse(text)));});
  const results=await Promise.all([run(),run(),run(),run()]);assert.equal(results.filter(x=>!x.duplicate).length,1);
 }));
-test('CLI rejects native mode, resume flags and unsupported options',()=>{
- const cli=new URL('../bin/maxiaojian-publish.mjs',import.meta.url).pathname;
- for(const args of [['--account-status','douyin','demo'],['simulate',source.pathname,'--resume','case'],['simulate',source.pathname]]){const r=spawnSync(process.execPath,[cli,...args],{encoding:'utf8'});assert.equal(r.status,2);}
+test('CLI rejects unbound accounts and unsupported simulation options',()=>{
+ const cli=fileURLToPath(new URL('../bin/maxiaojian-publish.mjs',import.meta.url));
+ for(const args of [['--account-status','douyin','demo'],['simulate',fileURLToPath(source),'--resume','case'],['simulate',fileURLToPath(source)]]){const r=spawnSync(process.execPath,[cli,...args],{encoding:'utf8'});assert.equal(r.status,2);}
 });
 test('demo refuses local media paths, fixed contracts and real account mappings',()=>{
  const pkg=JSON.parse(fs.readFileSync(source));for(const patch of [{videoPath:'/does-not-exist'},{preparedState:'x'},{schoolAccount:{platform:'douyin',accountKey:'other'}}])assert.throws(()=>validateDemo({...pkg,...patch}));

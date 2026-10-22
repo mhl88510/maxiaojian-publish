@@ -29,7 +29,7 @@ test("job store restores only matching receipt checkpoints", async () => {
   assert.equal(fs.existsSync(store.receiptCheckpointPath("douyin")), false);
 });
 
-test("job store keeps private state and evidence permissions", async () => {
+test("job store keeps private state and evidence permissions", async (t) => {
   const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "video-publisher-private-state-test-"));
   const store = new JobStore(root, {
     schemaVersion: 3,
@@ -44,12 +44,16 @@ test("job store keeps private state and evidence permissions", async () => {
   }, { ready: false, missing: ["video"], blocker: null });
   await store.save();
   await store.close();
-  assert.equal(fs.statSync(root).mode & 0o777, 0o700);
-  assert.equal(fs.statSync(store.evidenceDir).mode & 0o777, 0o700);
-  assert.equal(fs.statSync(store.checkpointDir).mode & 0o777, 0o700);
-  assert.equal(fs.statSync(store.statePath).mode & 0o777, 0o600);
-  assert.equal(fs.statSync(store.backupPath).mode & 0o777, 0o600);
-  assert.equal(fs.statSync(store.state.platforms.xiaohongshu.lastEvidencePath).mode & 0o777, 0o600);
+  if (process.platform === "win32") {
+    t.diagnostic("POSIX mode bits are not Windows ACL evidence; Windows ACL privacy is not verified.");
+  } else {
+    assert.equal(fs.statSync(root).mode & 0o777, 0o700);
+    assert.equal(fs.statSync(store.evidenceDir).mode & 0o777, 0o700);
+    assert.equal(fs.statSync(store.checkpointDir).mode & 0o777, 0o700);
+    assert.equal(fs.statSync(store.statePath).mode & 0o777, 0o600);
+    assert.equal(fs.statSync(store.backupPath).mode & 0o777, 0o600);
+    assert.equal(fs.statSync(store.state.platforms.xiaohongshu.lastEvidencePath).mode & 0o777, 0o600);
+  }
 });
 
 test("job store restores a corrupt primary from its atomic backup", async () => {

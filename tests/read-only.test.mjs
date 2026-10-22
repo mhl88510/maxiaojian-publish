@@ -1,3 +1,4 @@
+import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
@@ -71,7 +72,7 @@ test('DOM collector ignores non-navigation Weibo author links',()=>{
  const ctx=dom({host:'weibo.com',links:[{href:'/u/000001',text:'Unrelated author',nav:false}]});assert.equal(vm.runInContext('('+collectVisibleState.toString()+')("weibo")',ctx).identities.length,0);
 });
 test('CLI refuses extra write, execute, profile and script flags before transport',()=>{
- for(const option of ['--action','--execute','--profile','--script']){const r=spawnSync(process.execPath,[new URL('../bin/maxiaojian-publish.mjs',import.meta.url).pathname,'read-only','--platform','toutiao','--space-id','7','--page','p1',option,'publish'],{encoding:'utf8'});assert.equal(r.status,2);assert.match(r.stderr,/READONLY_INVALID_OPTION/);}
+ for(const option of ['--action','--execute','--profile','--script']){const r=spawnSync(process.execPath,[fileURLToPath(new URL('../bin/maxiaojian-publish.mjs',import.meta.url)),'read-only','--platform','toutiao','--space-id','7','--page','p1',option,'publish'],{encoding:'utf8'});assert.equal(r.status,2);assert.match(r.stderr,/READONLY_INVALID_OPTION/);}
 });
 test('all 12 platform host contracts remain explicit and exact',()=>{assert.equal(Object.keys(READ_ONLY_HOSTS).length,12);for(const hosts of Object.values(READ_ONLY_HOSTS))for(const h of hosts)assert.doesNotMatch(h,/\*|\//);});
 

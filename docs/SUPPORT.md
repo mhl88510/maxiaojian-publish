@@ -18,6 +18,6 @@
 
 视频需要真实可解析媒体、ffprobe、已完成的视频配置，以及新包自己的准备状态。文章需要当前平台原生控件和选项符合原合同；知乎需自己的 selector 合同。账号不明确、登录过期、目标变动时停止。个人专用固定案例、单篇救援、历史材料和私有授权不迁移；使用自己的通用账号 key。
 
-本次测试：原适配器的身份、素材、封面、最终按钮与原调度器用合成对象验证；另测可执行 CLI、明确 opt-in、预约留存和公众号参数化。此类证据与原版真实使用分开，不表示本次运行过真实发布。macOS/本机 Node 是实际运行环境，Linux/Windows 和 Node 22 的 workflow 尚未运行。
+本次测试：原适配器的身份、素材、封面、最终按钮与原调度器用合成对象验证；另测可执行 CLI、明确 opt-in、预约留存和公众号参数化。此类证据与原版真实使用分开，不表示本次运行过真实发布。macOS/本机 Node 是实际运行环境，离线 OS/Node 矩阵结果见 [GitHub Actions](https://github.com/mhl88510/maxiaojian-publish/actions/workflows/offline.yml)，它不等于 Linux/Windows 的真实浏览器发布验收。
 
 已恢复不绑定单篇内容的原版同任务恢复模块：抖音 pristine preflight / input-missing 验证、视频权限中断、视频号 preflight / existing-blob / ready-source-proof、小红书 empty-input / rights-preflight、微博已证实未提交的点击遮挡恢复。文章续传入口先校验同账号、内容哈希、原始路径、未尝试提交的 typed PREPARATION_BLOCKED 回执，随后原生后端仍按原版精确错误类型和编辑器回读再次拒绝或放行；这不是任意草稿都可续发。搜狐原版封面准备失败及 SHA 绑定的配图视觉复核合同保留；头条历史某篇草稿续发和多层救援不能作为通用能力承诺。新文章使用直接 publish 工作流。固定窗口迁移、个人视觉合同、准备 scope 的旧任务特例以及具体文章的人工复核恢复仍明确排除，不能用占位数据承诺支持。
