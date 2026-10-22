@@ -163,7 +163,12 @@
     "tests/offline.test.mjs",
     "tests/read-only.test.mjs",
     "tests/test_archive_audit.py",
-    "tests/wrapper-guards.test.mjs"
+    "tests/wrapper-guards.test.mjs",
+    "scripts/reviewed_core_update.py",
+    "tests/test_reviewed_core_update.py",
+    "scripts/task_pr.py",
+    "tests/test_task_pr.py",
+    "scripts/offline_checks.py"
   ],
   "dependencies": {
     "ajv": "8.17.1",

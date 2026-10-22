@@ -58,3 +58,26 @@ test('WeChat API uses installer mapping and external toolchain with unchanged su
   assert.equal(calls,2);assert.equal(result.publishId,'fictional_publish');assert.equal(result.status,'SUBMITTED');assert.equal(result.publicReadbackVerified,false);
  }finally{if(previousRoot===undefined)delete process.env.MAXIAOJIAN_WECHAT_ROOT;else process.env.MAXIAOJIAN_WECHAT_ROOT=previousRoot;if(previousMatrix===undefined)delete process.env.SCHOOL_PUBLISHER_ACCOUNT_MATRIX;else process.env.SCHOOL_PUBLISHER_ACCOUNT_MATRIX=previousMatrix;}
 }));
+
+// All accounts and backends below are synthetic. No browser/network transport.
+const declaredPlatforms=JSON.parse(fs.readFileSync(new URL('../config/platform-scope.json',import.meta.url))).platforms.map(row=>row.key);
+test('distribution explicitly enumerates all twelve original platform families',()=>{
+ assert.deepEqual(new Set(declaredPlatforms),new Set(['douyin','xiaohongshu','wechat_channels','bilibili','youtube','zhihu','sohu','toutiao','baijiahao','netease','weibo','wechat_official']));
+});
+for(const platform of declaredPlatforms)test(platform+' offline no-execute regression never enters a write backend',fixture(async f=>{
+ const pkg=f.pkg(platform);delete pkg.backend;f.write(pkg);let calls=0;
+ const reject=async()=>{calls++;throw Error('UNEXPECTED_TRANSPORT');};
+ const result=await runSchoolPublisher([f.file,'--action','publish'],{matrix:f.matrix(platform),stateBase:path.join(f.root,'jobs'),execute:reject,runNativeArticle:reject,runVideoRelease:reject,runWeiboText:reject,runArticleManagement:reject});
+ assert.equal(result.status,'EXECUTION_OPT_IN_REQUIRED');assert.equal(calls,0);
+ assert.equal(fs.existsSync(path.join(f.root,'jobs')),false);
+}));
+test('YouTube final release capability gap is explicit before media, state or transport',fixture(async f=>{
+ f.write({...f.pkg('youtube'),backend:'ego_video'});let calls=0;
+ await assert.rejects(runVideoRelease(f.file,path.join(f.root,'nonexistent-state.json'),f.matrix('youtube'),()=>calls++),/VIDEO_RELEASE_PLATFORM_NOT_IMPLEMENTED/);
+ assert.equal(calls,0);
+}));
+test('Netease generic write stays blocked and uses only synthetic management readback',fixture(async f=>{
+ f.write(f.pkg('netease'));let reads=0,writes=0;
+ const result=await runSchoolPublisher([f.file,'--action','publish','--execute'],{matrix:f.matrix('netease'),stateBase:path.join(f.root,'jobs'),runArticleManagement:async()=>{reads++;return {ok:true,status:'OBSERVED'};},runNativeArticle:async()=>{writes++;throw Error('UNEXPECTED_WRITE');}});
+ assert.equal(result.code,'ARTICLE_WRITE_PATH_NOT_VERIFIED');assert.equal(result.readOnly,true);assert.equal(reads,1);assert.equal(writes,0);
+}));
