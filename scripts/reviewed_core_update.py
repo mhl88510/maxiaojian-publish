@@ -9,6 +9,7 @@ import re
 import stat
 import subprocess
 import uuid
+from contextlib import contextmanager
 
 
 def digest(data):
@@ -78,10 +79,10 @@ def source_bytes(checkout, commit, relative):
             or 'tests' in relative_path.parts
             or relative_path.name in {'config.mjs', 'school-account.mjs'}):
         raise ValueError('SHARED_SOURCE_SCOPE_INVALID')
-    entry = command('git', '-C', str(checkout), 'ls-tree', commit, '--', relative).decode().strip()
+    entry = command('git', '--no-replace-objects', '-C', str(checkout), 'ls-tree', commit, '--', relative).decode().strip()
     if not entry.startswith('100644 blob ') and not entry.startswith('100755 blob '):
         raise ValueError('REGULAR_COMMITTED_SOURCE_REQUIRED')
-    data = command('git', '-C', str(checkout), 'show', commit + ':' + relative)
+    data = command('git', '--no-replace-objects', '-C', str(checkout), 'show', commit + ':' + relative)
     if len(data) > 4 * 1024 * 1024:
         raise ValueError('SOURCE_TOO_LARGE')
     data.decode('utf-8')
@@ -102,8 +103,9 @@ def build_plan(checkout, bindings, merge, backup_root):
     root = plain_path(bindings['runtime_root'])
     if bindings.get('schema') != 'publisher-local-core-bindings/v1' or bindings['repo'] != merge['repository']:
         raise ValueError('BINDINGS_SCOPE_INVALID')
-    if backup_root == root or backup_root.is_relative_to(root):
-        raise ValueError('BACKUP_MUST_BE_OUTSIDE_RUNTIME')
+    if (backup_root == root or backup_root.is_relative_to(root)
+            or backup_root == checkout or backup_root.is_relative_to(checkout)):
+        raise ValueError('BACKUP_MUST_BE_OUTSIDE_RUNTIME_AND_CHECKOUT')
     rows, targets, sources = [], set(), set()
     for row in bindings['files']:
         target = plain_path(row['target'])
@@ -132,9 +134,35 @@ def build_plan(checkout, bindings, merge, backup_root):
             'publicationPerformed': False}
 
 
+@contextmanager
+def runtime_lock(root):
+    """All registered core writers must hold this same nonblocking lock."""
+    lock = plain_path(root) / '.publisher-core-update.lock'
+    try:
+        lock.mkdir(mode=0o700)
+    except FileExistsError as error:
+        raise ValueError('RUNTIME_UPDATE_LOCKED_PRESERVE_OTHER_WRITER') from error
+    identity = lock.stat()
+    try:
+        write_new(lock / 'owner.json', json.dumps({'pid': os.getpid()}).encode())
+        yield
+    finally:
+        # Never remove another owner's replacement lock or clear a stale lock.
+        if lock.is_dir() and not lock.is_symlink():
+            current = lock.stat()
+            if (current.st_dev, current.st_ino) == (identity.st_dev, identity.st_ino):
+                (lock / 'owner.json').unlink(missing_ok=True)
+                lock.rmdir()
+
+
 def apply_plan(plan, verify=verified_merge):
     if plan.get('schema') != 'reviewed-core-update-plan/v1':
         raise ValueError('PLAN_SCHEMA_INVALID')
+    with runtime_lock(plan['runtime_root']):
+        return _apply_locked(plan, verify)
+
+
+def _apply_locked(plan, verify):
     merge = plan['merge']
     if verify(merge['repository'], merge['pr']) != merge:
         raise ValueError('REVIEW_OR_MERGE_CHANGED')
@@ -197,6 +225,14 @@ def apply_plan(plan, verify=verified_merge):
     return result
 
 
+def external_artifacts(checkout, *paths):
+    checkout = plain_path(checkout)
+    for value in paths:
+        path = plain_path(value)
+        if path == checkout or path.is_relative_to(checkout):
+            raise ValueError('PRIVATE_ARTIFACT_MUST_BE_OUTSIDE_CHECKOUT')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action', choices=['plan', 'apply'])
@@ -210,6 +246,7 @@ def main():
     if args.action == 'plan':
         if not all([args.checkout, args.bindings, args.backup_root, args.pr]):
             parser.error('plan needs checkout, bindings, backup-root and pr')
+        external_artifacts(args.checkout, args.bindings, args.plan, args.backup_root)
         bindings = json.loads(plain_path(args.bindings).read_bytes())
         plan = build_plan(args.checkout, bindings, verified_merge(bindings['repo'], args.pr), args.backup_root)
         raw = json.dumps(plan, indent=2).encode()
@@ -219,7 +256,9 @@ def main():
         raw = plain_path(args.plan).read_bytes()
         if not args.expected_plan_sha256 or digest(raw) != args.expected_plan_sha256:
             raise ValueError('EXACT_PLAN_SHA_REQUIRED')
-        print(json.dumps(apply_plan(json.loads(raw))))
+        plan = json.loads(raw)
+        external_artifacts(plan['checkout'], args.plan, plan['backup_root'])
+        print(json.dumps(apply_plan(plan)))
 
 
 if __name__ == '__main__':

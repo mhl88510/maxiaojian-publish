@@ -110,6 +110,35 @@ class ManagedCoreTests(unittest.TestCase):
                 m.apply_plan(plan, verify=lambda *args: self.merge)
         self.assertIn('old', Path(self.files[0]['target']).read_text())
 
+    def test_private_backup_cannot_be_written_into_public_checkout(self):
+        with self.assertRaisesRegex(ValueError, 'BACKUP_MUST_BE_OUTSIDE'):
+            m.build_plan(self.repo, self.bindings, self.merge, self.repo / 'private-backups')
+
+    def test_plan_and_binding_artifacts_must_stay_outside_checkout(self):
+        for path in [self.repo / 'plan.json', self.repo / 'bindings.json']:
+            with self.subTest(path=path), self.assertRaisesRegex(ValueError, 'PRIVATE_ARTIFACT'):
+                m.external_artifacts(self.repo, path)
+        m.external_artifacts(self.repo, self.root / 'private-plan.json')
+
+    def test_replacement_refs_cannot_substitute_unreviewed_git_bytes(self):
+        source = self.repo / self.files[0]['source']
+        source.write_text('export const value = "unreviewed replacement";\n')
+        self.git('add', 'core')
+        self.git('-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-qm', 'replacement')
+        replacement = self.git('rev-parse', 'HEAD').strip()
+        self.git('replace', self.sha, replacement)
+        self.assertIn('unreviewed replacement', self.git('show', self.sha + ':' + self.files[0]['source']))
+        self.assertEqual(m.source_bytes(self.repo, self.sha, self.files[0]['source']), b'export const value = "new";\n')
+
+    def test_registered_core_writers_cannot_overlap_adoption(self):
+        plan = self.plan()
+        with m.runtime_lock(self.runtime):
+            with self.assertRaisesRegex(ValueError, 'RUNTIME_UPDATE_LOCKED'):
+                m.apply_plan(plan, verify=lambda *args: self.merge)
+            self.assertIn('old', Path(self.files[0]['target']).read_text())
+        self.assertFalse((self.runtime / '.publisher-core-update.lock').exists())
+        self.assertEqual(m.apply_plan(plan, verify=lambda *args: self.merge)['updated'], 2)
+
     def test_mid_update_failure_rolls_back_and_keeps_backup(self):
         plan = self.plan()
         real = m.source_bytes

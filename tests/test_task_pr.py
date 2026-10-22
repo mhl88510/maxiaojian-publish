@@ -3,6 +3,7 @@ import importlib.util
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 spec = importlib.util.spec_from_file_location('task_pr', Path(__file__).parents[1] / 'scripts/task_pr.py')
 m = importlib.util.module_from_spec(spec)
@@ -40,6 +41,48 @@ class CompletedPublicSourceTests(unittest.TestCase):
         for topic, files in [('fixture', []), ('../fixture', [self.row]), ('fixture', [self.row, self.row])]:
             with self.subTest(topic=topic, count=len(files)), self.assertRaises(ValueError):
                 m.validate_manifest(self.root, {'schema': 'completed-public-topic/v1', 'topic': topic, 'files': files})
+
+    def test_review_is_requested_once_per_current_head(self):
+        import json
+        head = 'a' * 40
+        for mode in ['absent', 'running', 'completed', 'requested', 'old-head']:
+            comments = []
+            if mode == 'requested':
+                comments = [{'body': '<!-- managed-public-review-head:' + head + ' -->'}]
+            elif mode not in {'absent'}:
+                comments = [{'user': {'login': 'chatgpt-codex-connector[bot]'}, 'body':
+                             '<!-- codex-review-state:v1 ' + json.dumps({'code_review':
+                             {'commit_sha': 'b' * 40 if mode == 'old-head' else head,
+                              'status': 'running' if mode == 'old-head' else mode}}) + ' -->'}]
+            with self.subTest(mode=mode), patch.object(m, 'gh', side_effect=[{'number': 1, 'headRefOid': head}, comments]), patch.object(m, 'run') as send:
+                self.assertEqual(m.request_review_once('example/publisher', 'https://example.invalid/pr/1', head), mode in {'absent', 'old-head'})
+                self.assertEqual(send.call_count, int(mode in {'absent', 'old-head'}))
+
+    def test_fetched_branch_drift_stops_before_copy_tests_or_push(self):
+        import json
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp).resolve()
+            manifest = folder / 'manifest.json'
+            manifest.write_text(json.dumps({'schema': 'completed-public-topic/v1', 'topic': 'fixture',
+                                           'files': [self.row], 'expected_pr_head': 'a' * 40}))
+            calls = []
+
+            def fixture(args, cwd=None):
+                calls.append(args)
+                if args[:2] == ['git', 'clone']:
+                    Path(args[-1]).mkdir()
+                if 'rev-parse' in args:
+                    return 'b' * 40
+                return ''
+
+            argv = ['task_pr', '--source', str(self.root), '--manifest', str(manifest),
+                    '--work-root', str(folder / 'work'), '--repository', 'example/publisher', '--message', 'fixture', '--pr']
+            metadata = {'private': False, 'full_name': 'example/publisher', 'default_branch': 'main'}
+            opened = [{'url': 'https://example.invalid/pr/1', 'headRefOid': 'a' * 40}]
+            with patch.object(m, 'gh', side_effect=[metadata, opened]), patch.object(m, 'run', side_effect=fixture), patch.object(m, '__name__', 'fixture'), patch('sys.argv', argv):
+                with self.assertRaisesRegex(ValueError, 'EXISTING_PR_CHANGED_DURING_FETCH'):
+                    m.main()
+            self.assertFalse(any('push' in args or 'add' in args or args[0] == 'npm' for args in calls))
 
 
 if __name__ == '__main__':

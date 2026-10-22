@@ -48,6 +48,27 @@ def validate_manifest(source, manifest):
     return [screened_source(source, row) for row in rows]
 
 
+def request_review_once(repository, url, head):
+    pr = gh('pr', 'view', url, '--json', 'number,headRefOid')
+    if pr['headRefOid'] != head:
+        raise ValueError('REVIEW_HEAD_CHANGED')
+    comments = gh('api', f'repos/{repository}/issues/{pr["number"]}/comments?per_page=100')
+    if len(comments) >= 100:
+        raise ValueError('REVIEW_REQUEST_PAGINATION_REQUIRED')
+    marker = '<!-- managed-public-review-head:' + head + ' -->'
+    for comment in comments:
+        if marker in comment['body']:
+            return False
+        match = re.search(r'codex-review-state:v1 (\{.*?\}) -->', comment['body'])
+        if comment['user']['login'] == 'chatgpt-codex-connector[bot]' and match:
+            review = json.loads(match.group(1)).get('code_review', {})
+            if review.get('commit_sha') == head and review.get('status') in {'running', 'completed'}:
+                return False
+    run(['gh', 'pr', 'comment', url, '--body', '@codex review\n\n' + marker +
+         '\nReview this completed public-source head. No runtime deployment or business publishing.'])
+    return True
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--source', type=Path, required=True)
@@ -60,6 +81,8 @@ def main():
     if not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+', args.repository):
         raise ValueError('REPOSITORY_INVALID')
     source = args.source.resolve()
+    if args.manifest.resolve().is_relative_to(source) or args.work_root.resolve().is_relative_to(source):
+        raise ValueError('PRIVATE_MANIFEST_AND_WORK_AREA_MUST_BE_OUTSIDE_SOURCE')
     manifest_raw = args.manifest.read_bytes()
     manifest = json.loads(manifest_raw)
     files = validate_manifest(source, manifest)
@@ -80,6 +103,8 @@ def main():
     if opened:
         run(['git', '-C', str(checkout), 'fetch', 'origin', branch])
         run(['git', '-C', str(checkout), 'checkout', '-b', branch, 'FETCH_HEAD'])
+        if run(['git', '-C', str(checkout), 'rev-parse', 'HEAD']).strip() != manifest['expected_pr_head']:
+            raise ValueError('EXISTING_PR_CHANGED_DURING_FETCH')
     else:
         run(['git', '-C', str(checkout), 'checkout', '-b', branch, 'origin/' + base])
     for relative, raw in files:
@@ -127,6 +152,7 @@ def main():
             url = run(['gh', 'pr', 'create', '-R', args.repository, '--base', base, '--head', branch,
                        '--title', args.message, '--body',
                        'One completed SHA-pinned public-source topic. Affected offline checks and full public-history secret scan passed. Review this exact head; fixes stay in this PR. No private configuration, runtime replacement, timers or business publishing.']).strip()
+        request_review_once(args.repository, url, head)
     result = {'changed': True, 'head': head, 'checkout': str(checkout), 'pull_request': url,
               'files': [str(relative) for relative, _ in files], 'deployed': False}
     (args.work_root / (checkout.name + '-RESULT.json')).write_text(json.dumps(result, indent=2))

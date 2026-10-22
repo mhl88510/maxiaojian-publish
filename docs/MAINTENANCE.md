@@ -40,6 +40,8 @@ The optional task PR helper requires an external completed-file manifest, an iso
 
 The explicit two-phase helper requires Python 3.9+, Git and an authenticated GitHub CLI. Keep the private binding file outside the repository. Only register verified shared core modules; preserve private configuration and case-specific/customized adapters. Customized modules require an explicit scoped reconciliation, not bulk replacement. Both phases check the merged PR, exact completed clean Codex review, unresolved discussions and configured checks. Empty check lists do not imply CI ran.
 
+采用期间，所有登记的核心写入者共同遵守运行目录下的 `.publisher-core-update.lock`；锁覆盖最终回读与替换，冲突时停止，不自动清理他人或过期锁。任意不遵守合同的外部编辑器不受此协作锁控制，升级前须确认没有其他写入。Git 对象读取禁用 replace refs，私有 binding、plan 和备份均必须留在公开检出之外。 / Registered core writers share the nonblocking runtime lock throughout verification/replacement. Stop on contention; never clear foreign/stale locks automatically. External editors that do not honor this cooperative contract are outside its protection. Reviewed Git object reads disable replace refs; private bindings, plans and backups must remain outside the public checkout.
+
 ```sh
 python3 scripts/reviewed_core_update.py plan --checkout /path/to/clean-checkout --bindings /path/to/private-bindings.json --backup-root /path/to/private-backups --pr 123 --plan /path/to/new-plan.json
 python3 scripts/reviewed_core_update.py apply --plan /path/to/new-plan.json --expected-plan-sha256 <printed-plan-sha256>
