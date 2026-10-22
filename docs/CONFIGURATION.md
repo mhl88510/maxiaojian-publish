@@ -2,6 +2,8 @@
 
 ## 账号
 
+外部新用户先读 [Ego 依赖、已验版本和绑定获取指南（中英）](EGO-SETUP.md)，通过官方入口安装并连接自己的工具；不要将示例或维护者本机路径当成自己的环境。
+
 `SCHOOL_PUBLISHER_ACCOUNT_MATRIX` 指向私有 JSON；示例 `examples/accounts.json`。每个平台的 accounts 数组使用唯一 key，name/id 为平台可见身份。Ego 的 profileId、taskSpaceId/name、pageLabel、targetId 必须对应现有、已授权 Agent 控制的页面。账号名和 ID 不符、重复 key、目标改变都会拒绝；不要把默认示例当成真实绑定。
 
 `VIDEO_PUBLISHER_CONFIG` 为 core/config.mjs 生成的配置。使用 `node core/config.mjs onboard --source-dir <媒体目录> --available-platform <平台>`；这仅写指定本地配置，不登录或发帖。`--platform` 可设置默认平台，`--originality-policy ask_each_run` 保留逐次原创确认。可选 `VIDEO_PUBLISHER_V2_EGO_COMMAND` 指定兼容官方 Ego CLI，不是任意浏览器替代协议。
