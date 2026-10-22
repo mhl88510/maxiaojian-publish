@@ -1,0 +1,147 @@
+{
+  "schema": "portable-article-contracts/v1",
+  "platforms": {
+    "zhihu": {
+      "editorPathPattern": "^/p/[0-9]+/edit$",
+      "titleSelector": "textarea[placeholder*=\"请输入标题\"]",
+      "bodySelector": "[contenteditable=\"true\"][role=\"textbox\"]",
+      "coverSelector": ".UploadPicture-wrapper",
+      "coverReadySelector": ".UploadPicture-wrapper img",
+      "publishSelector": "button.Button--primary.Button--blue",
+      "draftMode": "autosave",
+      "autosavePattern": "(?:全部完成|已保存)",
+      "identitySelector": ".AppHeader-profileAvatar",
+      "publicTitleSelector": ".Post-Title",
+      "publicBodySelector": ".Post-RichTextContainer",
+      "publicAuthorSelector": ".Post-Author .AuthorInfo-name"
+    },
+    "sohu": {
+      "managementReadback": {
+        "managementPathPattern": "^/mpfe/v4/contentManagement/first/page$",
+        "identitySelector": ".user-name",
+        "rowSelector": ".article-content-wrap",
+        "articleLinkSelector": ".title a[href]",
+        "identityMode": "scoped_vue_user_info",
+        "readySelector": ".status-control.total",
+        "statusFilterSelector": ".status-control.status-active",
+        "publishedFilterSelector": ".status-control.published",
+        "publishedFilterActiveSelector": ".status-control.published.status-active",
+        "totalFilterSelector": ".status-control.total",
+        "totalFilterActiveSelector": ".status-control.total.status-active",
+        "searchInputSelector": "input[placeholder=\"请输入关键词\"]",
+        "searchButtonSelector": ".article-header_search button",
+        "emptyResultText": "搜索结果为空，请重新搜索",
+        "pagination": {
+          "containerSelector": ".mt-pagination",
+          "pageNumberSelector": ".mt-pager li.number",
+          "nextSelector": "button.btn-next",
+          "prevSelector": "button.btn-prev",
+          "totalSelector": ".mt-pagination__total"
+        }
+      },
+      "nativeArticle": {
+        "managementPathPattern": "^/mpfe/v4/contentManagement/first/page$",
+        "identitySelector": ".user-name",
+        "rowSelector": ".article-content-wrap",
+        "articleLinkSelector": ".title a[href]",
+        "editorUrl": "https://mp.sohu.com/mpfe/v4/contentManagement/news/addarticle?contentStatus=1",
+        "titleSelector": "input[placeholder=\"请输入标题（5-72字）\"]",
+        "bodySelector": ".ql-editor",
+        "summarySelector": "textarea[placeholder=\"请输入摘要\"]",
+        "minTitleLength": 5,
+        "maxTitleLength": 72,
+        "coverMode": "sohu",
+        "coverReadySelector": ".pic-cover",
+        "coverConfirmSelector": "p.button.positive-button",
+        "topicInputSelector": ".select-topic input.el-select__input:not([readonly])",
+        "topicInputReadOnly": false,
+        "draftMode": "button",
+        "draftSelector": "li.publish-report-btn.negative-button:not(.timeout-pub)",
+        "publishSelector": "li.publish-report-btn.active.positive-button",
+        "identityMode": "scoped_vue_user_info",
+        "readonlyTopicPlaceholderSelector": ".select-topic input[placeholder=\"请输入关键词搜索\"][readonly]",
+        "attributeScopeSelector": ".article-attr .select.plugin-dropdown",
+        "attributeControlSelector": ".select-main",
+        "topicScopeSelector": ".select-topic .el-select",
+        "topicTagSelector": ".el-select__tags-text",
+        "topicOptionSelector": ".el-select-dropdown__item"
+      },
+      "publicTitleSelector": ".text-title h1",
+      "publicBodySelector": "article#mp-editor",
+      "publicAuthorSelector": "#user-info h1 a",
+      "navigateExistingPage": true,
+      "sourceLinksMode": "exact_url_tokens",
+      "publicReadbackTransport": "direct_public_http_v1",
+      "publicTemplateVariants": [
+        {
+          "name": "sohu_auto_ssr_v1",
+          "titleSelector": ".content-main > h3.content-main--title",
+          "bodySelector": ".content-main > .content-main-detail",
+          "authorSelector": ".content-tools > .author > a.author-name > span",
+          "identityMode": "jsonld_exact_article_url_and_owner"
+        }
+      ]
+    },
+    "toutiao": {
+      "managementReadback": {
+        "managementPathPattern": "^/profile_v4/(?:graphic/articles|manage/content/all)$",
+        "identitySelector": ".garr-header a[title$=\"的个人主页\"]",
+        "identityHrefPattern": "^https://www[.]toutiao[.]com/c/user/([0-9]+)/",
+        "rowSelector": ".article-card-wrap",
+        "articleLinkSelector": ".title-wrap a.title[href]",
+        "readySelector": ".article-card-wrap"
+      },
+      "nativeArticle": {
+        "managementPathPattern": "^/profile_v4/(?:graphic/articles|manage/content/all)$",
+        "identitySelector": ".garr-header a[title$=\"的个人主页\"]",
+        "identityHrefPattern": "^https://www[.]toutiao[.]com/c/user/([0-9]+)/",
+        "rowSelector": ".article-card-wrap",
+        "articleLinkSelector": ".title-wrap a.title[href]",
+        "editorUrl": "https://mp.toutiao.com/profile_v4/graphic/publish",
+        "titleSelector": "textarea[placeholder=\"请输入文章标题（2～30个字）\"]",
+        "bodySelector": ".ProseMirror",
+        "minTitleLength": 2,
+        "maxTitleLength": 30,
+        "coverMode": "toutiao",
+        "coverOpenSelector": ".article-cover-add",
+        "coverInputSelector": "input[type=\"file\"]:not([id])",
+        "coverReadySelector": ".article-cover-img-wrap img",
+        "coverConfirmSelector": ".upload-image-panel .confirm-btns button.byte-btn-primary",
+        "toutiaoLocationSelector": ".position-cell .position-select .byte-select-view-value",
+        "toutiaoLocationPickerSelector": ".position-cell .position-select",
+        "toutiaoLocationOptionSelector": ".byte-select-option",
+        "toutiaoFirstPublishSelector": ".exclusive-checkbox-wraper label",
+        "toutiaoMicroHeadlineSelector": ".form-tuwen_wtt_trans .combine-tip-wrap label",
+        "draftMode": "autosave",
+        "autosavePattern": "(?:草稿已保存|保存成功|已保存)",
+        "publishSelector": "button.publish-btn-last",
+        "finalPublishSelector": "button.publish-btn-last",
+        "publishMode": "preview_confirm"
+      },
+      "publicTitleSelector": ".article-content > h1",
+      "publicBodySelector": "article.tt-article-content",
+      "publicAuthorSelector": ".article-meta .name",
+      "navigateExistingPage": true,
+      "sourceLinksMode": "exact_text_lines"
+    },
+    "baijiahao": {
+      "managementReadback": {
+        "managementPathPattern": "^/builder/rc/content$",
+        "contentListPathPattern": "^/builder/rc/content$",
+        "accountIdQuery": "app_id",
+        "identityMode": "scoped_header_react_user",
+        "identitySelector": "img[alt=\"头像\"][class*=\"portrait\"]",
+        "readySelector": ".client_pages_content_v2_components_articleItem",
+        "rowSelector": ".client_pages_content_v2_components_articleItem",
+        "articleLinkSelector": ".title a.cheetah-public[href]",
+        "emptyResultText": "暂无数据"
+      }
+    },
+    "netease": {
+      "managementReadback": {
+        "managementPathPattern": "^/subscribe_v4/index[.]html#/home$",
+        "identitySelector": ".layout__header"
+      }
+    }
+  }
+}

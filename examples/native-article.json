@@ -1,0 +1,10 @@
+{
+  "schoolAccount": {
+    "platform": "toutiao",
+    "accountKey": "demo_owner"
+  },
+  "backend": "ego_article",
+  "title": "Fictional article",
+  "body": "Installer supplied article text",
+  "articlePath": "./your-media/article.md"
+}

@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 2,
+  "onboarding": {
+    "completed": false,
+    "completedAt": "",
+    "updatedAt": ""
+  },
+  "locale": "zh-CN",
+  "sourceDirectory": "/example/media",
+  "availablePlatforms": [
+    "douyin"
+  ],
+  "defaultPlatforms": [
+    "douyin"
+  ],
+  "contentProfile": {
+    "copyStyle": "clear, conversational, specific, non-hype",
+    "recurringTags": []
+  },
+  "declarations": {
+    "originalityPolicy": "ask_each_run"
+  },
+  "platforms": {
+    "douyin": {
+      "defaultTopics": []
+    },
+    "bilibili": {
+      "allowedAutoTags": []
+    },
+    "youtube": {
+      "defaultCategory": "",
+      "defaultLanguage": "",
+      "defaultVisibility": "private"
+    }
+  },
+  "execution": {
+    "checkConcurrency": 4,
+    "uploadConcurrency": 4
+  },
+  "cover": {
+    "uploadExistingByDefault": false
+  }
+}

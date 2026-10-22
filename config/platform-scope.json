@@ -1,0 +1,41 @@
+{
+  "note": "Native routes retain original platform guards; see docs/SUPPORT.md for concrete boundaries.",
+  "platforms": [
+    {
+      "key": "douyin"
+    },
+    {
+      "key": "xiaohongshu"
+    },
+    {
+      "key": "wechat_channels"
+    },
+    {
+      "key": "bilibili"
+    },
+    {
+      "key": "youtube"
+    },
+    {
+      "key": "zhihu"
+    },
+    {
+      "key": "sohu"
+    },
+    {
+      "key": "toutiao"
+    },
+    {
+      "key": "baijiahao"
+    },
+    {
+      "key": "netease"
+    },
+    {
+      "key": "weibo"
+    },
+    {
+      "key": "wechat_official"
+    }
+  ]
+}

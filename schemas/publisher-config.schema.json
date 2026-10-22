@@ -1,0 +1,160 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": 2
+    },
+    "onboarding": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "completed": {
+          "type": "boolean"
+        },
+        "completedAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      }
+    },
+    "locale": {
+      "type": "string"
+    },
+    "sourceDirectory": {
+      "type": "string",
+      "description": "Installer-supplied absolute media directory; example path is fictional."
+    },
+    "availablePlatforms": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "xiaohongshu",
+          "douyin",
+          "bilibili",
+          "wechat_channels",
+          "youtube"
+        ]
+      },
+      "minItems": 1
+    },
+    "defaultPlatforms": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "xiaohongshu",
+          "douyin",
+          "bilibili",
+          "wechat_channels",
+          "youtube"
+        ]
+      },
+      "minItems": 1
+    },
+    "contentProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "copyStyle": {
+          "type": "string"
+        },
+        "recurringTags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "declarations": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "originalityPolicy": {
+          "type": "string",
+          "enum": [
+            "ask_each_run",
+            "all_videos_original"
+          ]
+        }
+      }
+    },
+    "platforms": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "douyin": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "defaultTopics": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "bilibili": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "allowedAutoTags": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "youtube": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "defaultCategory": {
+              "type": "string"
+            },
+            "defaultLanguage": {
+              "type": "string"
+            },
+            "defaultVisibility": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "checkConcurrency": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "uploadConcurrency": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "cover": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "uploadExistingByDefault": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Original publisher configuration schema v2",
+  "required": [
+    "schemaVersion"
+  ]
+}

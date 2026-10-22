@@ -1,0 +1,17 @@
+{
+  "routes": [
+    {
+      "platform": "douyin",
+      "account_key": "demo_owner",
+      "transport": "ego_creator_native",
+      "ego_profile_id": "fictional-profile",
+      "task_space_id": 1,
+      "task_space_name": "My authorized publishing space",
+      "page_label": "p1",
+      "target_id": "00000000000000000000000000000000",
+      "account_name": "Fictional Creator",
+      "public_account_id": "000001",
+      "api_uid": "000001"
+    }
+  ]
+}

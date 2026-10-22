@@ -1,0 +1,7 @@
+node_modules/
+dist/
+my-private/
+*.tgz
+.env
+aws.env
+.DS_Store

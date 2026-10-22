@@ -1,0 +1,34 @@
+{
+  "platforms": {
+    "douyin": {
+      "accounts": [
+        {
+          "key": "demo_owner",
+          "name": "Fictional Creator",
+          "id": "000001",
+          "ego": {
+            "profileId": "fictional-profile",
+            "taskSpaceId": 1,
+            "taskSpaceName": "My authorized publishing space",
+            "pageLabel": "p1",
+            "targetId": "fictional-target",
+            "apiUid": "000001"
+          }
+        }
+      ]
+    },
+    "wechat_official": {
+      "accounts": [
+        {
+          "key": "demo_wechat",
+          "name": "Fictional Official Account",
+          "id": "fictional-official",
+          "wechatApi": {
+            "alias": "fictional-official",
+            "slot": 1
+          }
+        }
+      ]
+    }
+  }
+}

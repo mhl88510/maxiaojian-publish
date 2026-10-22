@@ -1,0 +1,12 @@
+{
+  "schoolAccount": {
+    "platform": "douyin",
+    "accountKey": "demo_owner"
+  },
+  "title": "Fictional demo title",
+  "description": "Installer supplied video description",
+  "videoPath": "./your-media/video.mp4",
+  "coverPath": "./your-media/cover.jpg",
+  "douyinDescription": "Installer supplied video description",
+  "douyinTopics": []
+}

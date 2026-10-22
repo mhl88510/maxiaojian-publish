@@ -1,0 +1,205 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Synthetic offline compiled video contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "subject",
+    "schoolAccount",
+    "contentType",
+    "title",
+    "description",
+    "topics",
+    "videoPath",
+    "backend",
+    "studio"
+  ],
+  "properties": {
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "key"
+      ],
+      "properties": {
+        "kind": {
+          "const": "school"
+        },
+        "key": {
+          "const": "offline-example"
+        }
+      }
+    },
+    "schoolAccount": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "platform",
+        "accountKey"
+      ],
+      "properties": {
+        "platform": {
+          "const": "douyin"
+        },
+        "accountKey": {
+          "const": "demo"
+        }
+      }
+    },
+    "contentType": {
+      "const": "video"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string"
+    },
+    "topics": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 5
+    },
+    "videoPath": {
+      "type": "string",
+      "minLength": 1
+    },
+    "backend": {
+      "const": "ego_video"
+    },
+    "douyinTitle": {
+      "type": "string"
+    },
+    "douyinDescription": {
+      "type": "string"
+    },
+    "douyinTopics": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 5
+    },
+    "cover": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "uploadCustomCover": {
+          "type": "boolean"
+        },
+        "vertical3x4Path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "horizontal4x3Path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "horizontal16x9Path": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "platformDeclarations": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "douyin": {
+          "const": "none"
+        }
+      }
+    },
+    "studio": {
+      "type": "object",
+      "required": [
+        "schema",
+        "contentId",
+        "subject",
+        "sourceRefs",
+        "assetBindings",
+        "validation",
+        "needsAdapter",
+        "adapterIssues"
+      ],
+      "properties": {
+        "schema": {
+          "const": "school-content-publish/v1"
+        },
+        "contentId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]+$"
+        },
+        "subject": {
+          "type": "object"
+        },
+        "sourceRefs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object"
+          }
+        },
+        "assetBindings": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "sha256",
+              "size"
+            ],
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "size": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "validation": {
+          "type": "object"
+        },
+        "needsAdapter": {
+          "type": "boolean"
+        },
+        "adapterIssues": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "schoolKey": {
+          "type": "string"
+        },
+        "requested": {
+          "type": "object"
+        },
+        "requiresAdapterReason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "nativeOnly": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
