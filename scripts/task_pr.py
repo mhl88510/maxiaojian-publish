@@ -7,6 +7,7 @@ from pathlib import Path
 import re
 import subprocess
 import tempfile
+import time
 import uuid
 
 
@@ -49,10 +50,21 @@ def validate_manifest(source, manifest):
 
 
 def request_review_once(repository, url, head):
-    pr = gh('pr', 'view', url, '--json', 'number,headRefOid')
-    if pr['headRefOid'] != head:
+    match = re.fullmatch(r'https://github\.com/' + re.escape(repository) + r'/pull/([0-9]+)', url)
+    if not match:
+        raise ValueError('REVIEW_REPOSITORY_URL_MISMATCH')
+    number = int(match.group(1))
+    # PR projections can lag a successful Git ref update; bounded fresh reads
+    # are not repeated review requests and never authorize another push.
+    for attempt in range(2):
+        pr = gh('api', f'repos/{repository}/pulls/{number}')
+        if pr['head']['sha'] == head:
+            break
+        if attempt == 0:
+            time.sleep(3)
+    if pr['head']['sha'] != head:
         raise ValueError('REVIEW_HEAD_CHANGED')
-    comments = gh('api', f'repos/{repository}/issues/{pr["number"]}/comments?per_page=100')
+    comments = gh('api', f'repos/{repository}/issues/{number}/comments?per_page=100')
     if len(comments) >= 100:
         raise ValueError('REVIEW_REQUEST_PAGINATION_REQUIRED')
     marker = '<!-- managed-public-review-head:' + head + ' -->'
@@ -146,16 +158,28 @@ def main():
              '--redact=100', '--ignore-gitleaks-allow', '--gitleaks-ignore-path', str(ignore)])
     head = run(['git', '-C', str(checkout), 'rev-parse', 'HEAD']).strip()
     url = opened[0]['url'] if opened else None
+    result = {'changed': True, 'head': head, 'checkout': str(checkout), 'pull_request': url,
+              'files': [str(relative) for relative, _ in files], 'deployed': False,
+              'pushed': False, 'review_request_state': 'NOT_REQUESTED'}
+    receipt = args.work_root / (checkout.name + '-RESULT.json')
     if args.pr:
         run(['git', '-C', str(checkout), 'push', 'origin', 'HEAD:refs/heads/' + branch])
+        result['pushed'] = True
+        receipt.write_text(json.dumps(result, indent=2))
         if not url:
             url = run(['gh', 'pr', 'create', '-R', args.repository, '--base', base, '--head', branch,
                        '--title', args.message, '--body',
                        'One completed SHA-pinned public-source topic. Affected offline checks and full public-history secret scan passed. Review this exact head; fixes stay in this PR. No private configuration, runtime replacement, timers or business publishing.']).strip()
-        request_review_once(args.repository, url, head)
-    result = {'changed': True, 'head': head, 'checkout': str(checkout), 'pull_request': url,
-              'files': [str(relative) for relative, _ in files], 'deployed': False}
-    (args.work_root / (checkout.name + '-RESULT.json')).write_text(json.dumps(result, indent=2))
+        result['pull_request'] = url
+        try:
+            sent = request_review_once(args.repository, url, head)
+            result['review_request_state'] = 'REQUESTED' if sent else 'EXISTING_CURRENT_HEAD_REVIEW'
+        except Exception as error:
+            result['review_request_state'] = 'PENDING_READBACK_OR_REQUEST'
+            result['error_type'] = type(error).__name__
+            receipt.write_text(json.dumps(result, indent=2))
+            raise
+    receipt.write_text(json.dumps(result, indent=2))
     print(json.dumps(result))
 
 

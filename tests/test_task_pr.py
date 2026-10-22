@@ -54,9 +54,23 @@ class CompletedPublicSourceTests(unittest.TestCase):
                              '<!-- codex-review-state:v1 ' + json.dumps({'code_review':
                              {'commit_sha': 'b' * 40 if mode == 'old-head' else head,
                               'status': 'running' if mode == 'old-head' else mode}}) + ' -->'}]
-            with self.subTest(mode=mode), patch.object(m, 'gh', side_effect=[{'number': 1, 'headRefOid': head}, comments]), patch.object(m, 'run') as send:
-                self.assertEqual(m.request_review_once('example/publisher', 'https://example.invalid/pr/1', head), mode in {'absent', 'old-head'})
+            with self.subTest(mode=mode), patch.object(m, 'gh', side_effect=[{'head': {'sha': head}}, comments]), patch.object(m, 'run') as send:
+                self.assertEqual(m.request_review_once('example/publisher', 'https://github.com/example/publisher/pull/1', head), mode in {'absent', 'old-head'})
                 self.assertEqual(send.call_count, int(mode in {'absent', 'old-head'}))
+
+    def test_lagging_pr_projection_does_not_repeat_push_or_request(self):
+        head = 'a' * 40
+        for converges in [False, True]:
+            values = [{'head': {'sha': 'b' * 40}}, {'head': {'sha': head if converges else 'b' * 40}}]
+            if converges: values.append([])
+            with self.subTest(converges=converges), patch.object(m, 'gh', side_effect=values), patch.object(m.time, 'sleep') as sleep, patch.object(m, 'run') as send:
+                if converges:
+                    self.assertTrue(m.request_review_once('example/publisher', 'https://github.com/example/publisher/pull/1', head))
+                else:
+                    with self.assertRaisesRegex(ValueError, 'REVIEW_HEAD_CHANGED'):
+                        m.request_review_once('example/publisher', 'https://github.com/example/publisher/pull/1', head)
+                sleep.assert_called_once_with(3)
+                self.assertEqual(send.call_count, int(converges))
 
     def test_fetched_branch_drift_stops_before_copy_tests_or_push(self):
         import json
