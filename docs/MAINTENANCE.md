@@ -155,3 +155,7 @@ python3 -m unittest discover -s tests -p 'test_*.py'
 Offline CI checks installation and synthetic behavior on its listed OS/Node combinations. Passing every job does not establish live-account uploads or publication on those systems.
 
 Unix 文件权限位检查只适用于 POSIX 系统；Windows ACL 隐私权限未由本项目验证。 / Unix mode-bit assertions apply only to POSIX systems; this project has not verified Windows ACL privacy.
+
+### Offline check isolation
+
+The task helper currently requires macOS sandbox-exec and fails closed on unsupported hosts. Dependency installation runs with scripts disabled, a fresh HOME/config and no inherited credentials; only that install phase has network access. Candidate checks run with network denied, private home files unreadable, source/.git read-only and only a disposable scratch directory writable. The helper never falls back to credentialed host execution. Publisher platform support is separate from this maintenance-helper requirement.

@@ -22,10 +22,11 @@ def gh(*args):
 def screened_source(source, row):
     relative = Path(row['path'])
     if (relative.is_absolute() or '..' in relative.parts or not relative.parts
-            or any(part in {'.git', 'node_modules', 'config', 'data', 'output', 'backups', 'sessions', 'profiles'} for part in relative.parts)
-            or relative.as_posix().startswith('.github/workflows/')
-            or relative.name.startswith('.env')
-            or relative.suffix not in {'.py', '.mjs', '.js', '.json', '.md', '.yml', '.yaml', '.txt'}
+            or '\\' in row['path']
+            or any(part.casefold() in {'.git', 'node_modules', 'config', 'data', 'output', 'backups', 'sessions', 'profiles'} for part in relative.parts)
+            or relative.as_posix().casefold().startswith('.github/workflows/')
+            or relative.name.casefold().startswith('.env')
+            or relative.suffix.casefold() not in {'.py', '.mjs', '.js', '.json', '.md', '.yml', '.yaml', '.txt'}
             or re.search(r'cookie|credential|secret|storage.?state|\.bak$|\.backup$', relative.name, re.I)):
         raise ValueError('PUBLIC_SOURCE_PATH_FORBIDDEN')
     path = source / relative
@@ -69,7 +70,7 @@ def request_review_once(repository, url, head):
         raise ValueError('REVIEW_REQUEST_PAGINATION_REQUIRED')
     marker = '<!-- managed-public-review-head:' + head + ' -->'
     for comment in comments:
-        if marker in comment['body']:
+        if marker in comment['body'] and comment.get('user', {}).get('login') == repository.split('/')[0]:
             return False
         match = re.search(r'codex-review-state:v1 (\{.*?\}) -->', comment['body'])
         if comment['user']['login'] == 'chatgpt-codex-connector[bot]' and match:
@@ -134,18 +135,18 @@ def main():
         return
     if changed != 1:
         raise ValueError('GIT_DIFF_FAILED')
-    checks = [
-        ['npm', 'ci', '--ignore-scripts', '--no-audit', '--no-fund'],
-        ['npm', 'run', 'check'], ['npm', 'test'],
-        ['python3', '-m', 'unittest', 'discover', '-s', 'tests', '-p', 'test_*.py'],
-    ]
-    for index, check in enumerate(checks):
-        log = args.work_root / (checkout.name + '-check-' + str(index) + '.log')
-        try:
-            log.write_text(run(check, cwd=checkout))
-        except subprocess.CalledProcessError as error:
-            log.write_text(error.output)
-            raise RuntimeError('OFFLINE_CHECK_FAILED: ' + str(log)) from error
+    from offline_checks import run_offline_checks
+    run_offline_checks(checkout, args.work_root / (checkout.name + '-checks'))
+    if validate_manifest(source, manifest) != files:
+        raise ValueError('SOURCE_CHANGED_DURING_CHECKS')
+    allowed = {str(relative): hashlib.sha256(raw).hexdigest() for relative, raw in files}
+    staged = run(['git', '-C', str(checkout), 'diff', '--cached', '--name-only']).splitlines()
+    if not set(staged).issubset(allowed):
+        raise ValueError('UNEXPECTED_STAGED_FILE_AFTER_CHECKS')
+    for relative, expected in allowed.items():
+        staged_bytes = subprocess.check_output(['git', '--no-replace-objects', '-C', str(checkout), 'show', ':' + relative])
+        if hashlib.sha256(staged_bytes).hexdigest() != expected:
+            raise ValueError('STAGED_SOURCE_CHANGED_DURING_CHECKS')
     run(['git', '-C', str(checkout), 'diff', '--cached', '--check'])
     run(['git', '-C', str(checkout), '-c', 'user.name=maintainer', '-c',
          'user.email=maintainer@users.noreply.github.com', 'commit', '-m', args.message])
@@ -173,7 +174,7 @@ def main():
         result['pull_request'] = url
         try:
             sent = request_review_once(args.repository, url, head)
-            result['review_request_state'] = 'REQUESTED' if sent else 'EXISTING_CURRENT_HEAD_REVIEW'
+            result['review_request_state'] = 'REQUESTED' if sent else 'EXISTING_REVIEW_OR_TRUSTED_REQUEST'
         except Exception as error:
             result['review_request_state'] = 'PENDING_READBACK_OR_REQUEST'
             result['error_type'] = type(error).__name__

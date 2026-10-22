@@ -29,6 +29,8 @@ class CompletedPublicSourceTests(unittest.TestCase):
 
     def test_private_paths_and_config_never_enter_export(self):
         for path in ['config/accounts.json', '../outside.mjs', '.env', 'data/state.json',
+                     'Config/accounts.json', 'SESSIONS/session.json', '.ENV.json', 'config\\accounts.json',
+                     '.Git/config.json', '.GITHUB/WORKFLOWS/deploy.yml',
                      'output/result.json', 'lib/credentials.mjs', '.github/workflows/deploy.yml']:
             with self.subTest(path=path), self.assertRaises(ValueError):
                 m.screened_source(self.root, {'path': path, 'sha256': '0' * 64})
@@ -45,18 +47,18 @@ class CompletedPublicSourceTests(unittest.TestCase):
     def test_review_is_requested_once_per_current_head(self):
         import json
         head = 'a' * 40
-        for mode in ['absent', 'running', 'completed', 'requested', 'old-head']:
+        for mode in ['absent', 'running', 'completed', 'requested', 'impersonated', 'old-head']:
             comments = []
-            if mode == 'requested':
-                comments = [{'body': '<!-- managed-public-review-head:' + head + ' -->'}]
+            if mode in {'requested', 'impersonated'}:
+                comments = [{'user': {'login': 'example' if mode == 'requested' else 'stranger'}, 'body': '<!-- managed-public-review-head:' + head + ' -->'}]
             elif mode not in {'absent'}:
                 comments = [{'user': {'login': 'chatgpt-codex-connector[bot]'}, 'body':
                              '<!-- codex-review-state:v1 ' + json.dumps({'code_review':
                              {'commit_sha': 'b' * 40 if mode == 'old-head' else head,
                               'status': 'running' if mode == 'old-head' else mode}}) + ' -->'}]
             with self.subTest(mode=mode), patch.object(m, 'gh', side_effect=[{'head': {'sha': head}}, comments]), patch.object(m, 'run') as send:
-                self.assertEqual(m.request_review_once('example/publisher', 'https://github.com/example/publisher/pull/1', head), mode in {'absent', 'old-head'})
-                self.assertEqual(send.call_count, int(mode in {'absent', 'old-head'}))
+                self.assertEqual(m.request_review_once('example/publisher', 'https://github.com/example/publisher/pull/1', head), mode in {'absent', 'old-head', 'impersonated'})
+                self.assertEqual(send.call_count, int(mode in {'absent', 'old-head', 'impersonated'}))
 
     def test_lagging_pr_projection_does_not_repeat_push_or_request(self):
         head = 'a' * 40
