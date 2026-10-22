@@ -145,6 +145,8 @@ python3 -m unittest discover -s tests -p 'test_*.py'
 
 ---
 
-MIT · 维护者 [mhl88510](https://github.com/mhl88510) · [原创许可](LICENSE) · [上游 MIT 声明](LICENSE.upstream-MIT)
+MIT · 维护者 [mhl88510](https://github.com/mhl88510) · [原创许可](LICENSE) · [组件 MIT 声明](LICENSE.upstream-MIT)
 
-基于 [oil-oil/video-publisher-skill](https://github.com/oil-oil/video-publisher-skill) 持续定制，保留适用版权说明。账号映射、登录态、业务素材、旧回执与原业务仓库历史不随包分发。分享运行输出前请检查账号、作品 ID 和本机路径，详见 [隐私说明](docs/PRIVACY.md)。
+由 [mhl88510](https://github.com/mhl88510) 开发和维护。随包组件的来源范围与适用许可见 [来源说明](NOTICE.md)。
+
+账号映射、登录态、业务素材、旧回执与原业务仓库历史不随包分发。分享运行输出前请检查账号、作品 ID 和本机路径，详见 [隐私说明](docs/PRIVACY.md)。

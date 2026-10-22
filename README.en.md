@@ -145,6 +145,8 @@ Get fixed versions from [GitHub Releases](https://github.com/mhl88510/maxiaojian
 
 ---
 
-MIT · Maintainer [mhl88510](https://github.com/mhl88510) · [Project license](LICENSE) · [Upstream MIT notice](LICENSE.upstream-MIT)
+MIT · Maintainer [mhl88510](https://github.com/mhl88510) · [Project license](LICENSE) · [Component MIT notice](LICENSE.upstream-MIT)
 
-Customized from [oil-oil/video-publisher-skill](https://github.com/oil-oil/video-publisher-skill), with applicable copyright notices retained. Account mappings, login state, business media, old receipts, and original business-repository history are not distributed. Before sharing runtime output, check for account identifiers, content IDs, and local paths. See [privacy guidance](docs/PRIVACY.md).
+Developed and maintained by [mhl88510](https://github.com/mhl88510). See the [source notices](NOTICE.md) for bundled component provenance and applicable licenses.
+
+ Account mappings, login state, business media, old receipts, and original business-repository history are not distributed. Before sharing runtime output, check for account identifiers, content IDs, and local paths. See [privacy guidance](docs/PRIVACY.md).
