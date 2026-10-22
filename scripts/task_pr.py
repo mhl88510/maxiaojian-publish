@@ -36,7 +36,8 @@ def screened_source(source, row):
     if len(raw) > 4 * 1024 * 1024 or hashlib.sha256(raw).hexdigest() != row['sha256']:
         raise ValueError('COMPLETED_SOURCE_SHA_CHANGED')
     text = raw.decode('utf-8')
-    if re.search(r'/(?:Users|home)/|-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|gh_[a-z0-9]{8,}', text):
+    if (re.search(r'/(?:Users|home|Volumes|mnt|media|root|srv)/|/private/var/(?:folders|tmp)/|(?<![A-Za-z0-9])[A-Za-z]:[\\/]|\\\\[A-Za-z0-9_.-]+\\|file:[/]{2}', text, re.I)
+            or re.search(r'-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|gh_[a-z0-9]{8,}', text)):
         raise ValueError('PRIVATE_OR_NONPORTABLE_SOURCE')
     return relative, raw
 
@@ -69,9 +70,17 @@ def request_review_once(repository, url, head):
     if len(comments) >= 100:
         raise ValueError('REVIEW_REQUEST_PAGINATION_REQUIRED')
     marker = '<!-- managed-public-review-head:' + head + ' -->'
+    permissions = {}
     for comment in comments:
-        if marker in comment['body'] and comment.get('user', {}).get('login') == repository.split('/')[0]:
-            return False
+        author = comment.get('user', {}).get('login', '')
+        if marker in comment['body']:
+            if author == repository.split('/')[0]:
+                return False
+            if re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9-]{0,38}(?:\[bot\])?', author):
+                if author not in permissions:
+                    permissions[author] = gh('api', f'repos/{repository}/collaborators/{author}/permission').get('permission')
+                if permissions[author] in {'admin', 'maintain', 'write'}:
+                    return False
         match = re.search(r'codex-review-state:v1 (\{.*?\}) -->', comment['body'])
         if comment['user']['login'] == 'chatgpt-codex-connector[bot]' and match:
             review = json.loads(match.group(1)).get('code_review', {})

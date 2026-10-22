@@ -39,6 +39,33 @@ class CompletedPublicSourceTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'PRIVATE_OR_NONPORTABLE'):
             m.screened_source(self.root, row)
 
+    def test_https_sources_are_not_mistaken_for_windows_drives(self):
+        self.file.write_text('https://github.com/example/publisher')
+        row = {**self.row, 'sha256': hashlib.sha256(self.file.read_bytes()).hexdigest()}
+        self.assertEqual(m.screened_source(self.root, row)[1], self.file.read_bytes())
+
+    def test_cross_platform_private_absolute_paths_are_rejected(self):
+        private_paths = ['C:' + chr(92) + 'Users' + chr(92) + 'Fixture' + chr(92) + 'private',
+                         'C:' + '/Users' + '/Fixture/private', '/' + 'Volumes/PrivateDrive/work',
+                         chr(92) * 2 + 'server' + chr(92) + 'private',
+                         'file:' + '///' + 'private/private-file', '/' + 'mnt/private-volume/source']
+        for text in private_paths:
+            with self.subTest(kind=text[:2]):
+                self.file.write_text(text)
+                row = {**self.row, 'sha256': hashlib.sha256(self.file.read_bytes()).hexdigest()}
+                with self.assertRaisesRegex(ValueError, 'PRIVATE_OR_NONPORTABLE'):
+                    m.screened_source(self.root, row)
+
+    def test_permission_authenticated_collaborator_marker_prevents_duplicate_request(self):
+        head = 'a' * 40
+        comments = [{'user': {'login': 'collaborator'}, 'body': '<!-- managed-public-review-head:' + head + ' -->'}]
+        for permission in ['admin', 'maintain', 'write', 'read', 'none']:
+            with self.subTest(permission=permission), patch.object(m, 'gh', side_effect=[{'head': {'sha': head}}, comments, {'permission': permission}]) as api, patch.object(m, 'run') as send:
+                should_send = permission not in {'admin', 'maintain', 'write'}
+                self.assertEqual(m.request_review_once('organization/publisher', 'https://github.com/organization/publisher/pull/1', head), should_send)
+                self.assertEqual(send.call_count, int(should_send))
+                self.assertEqual(api.call_args.args[-1], 'repos/organization/publisher/collaborators/collaborator/permission')
+
     def test_empty_duplicate_and_invalid_topic_rejected(self):
         for topic, files in [('fixture', []), ('../fixture', [self.row]), ('fixture', [self.row, self.row])]:
             with self.subTest(topic=topic, count=len(files)), self.assertRaises(ValueError):
@@ -56,7 +83,7 @@ class CompletedPublicSourceTests(unittest.TestCase):
                              '<!-- codex-review-state:v1 ' + json.dumps({'code_review':
                              {'commit_sha': 'b' * 40 if mode == 'old-head' else head,
                               'status': 'running' if mode == 'old-head' else mode}}) + ' -->'}]
-            with self.subTest(mode=mode), patch.object(m, 'gh', side_effect=[{'head': {'sha': head}}, comments]), patch.object(m, 'run') as send:
+            with self.subTest(mode=mode), patch.object(m, 'gh', side_effect=[{'head': {'sha': head}}, comments] + ([{'permission': 'read'}] if mode == 'impersonated' else [])), patch.object(m, 'run') as send:
                 self.assertEqual(m.request_review_once('example/publisher', 'https://github.com/example/publisher/pull/1', head), mode in {'absent', 'old-head', 'impersonated'})
                 self.assertEqual(send.call_count, int(mode in {'absent', 'old-head', 'impersonated'}))
 
